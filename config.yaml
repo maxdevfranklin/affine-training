@@ -1,0 +1,151 @@
+# Model Training Configuration for Affine-0004 Fine-tuning
+
+# Base Model Configuration
+model:
+  base_model_path: "../Affine-Forest"
+  model_type: "qwen3"
+  architecture: "Qwen3ForCausalLM"
+  parameters: 4022468096
+  context_length: 262144
+  use_flash_attention: true
+  torch_dtype: "bfloat16"
+  device_map: "auto"
+
+# Training Configuration
+training:
+  output_dir: "./checkpoints"
+  save_dir: "./models"
+  num_epochs: 3
+  batch_size: 2
+  gradient_accumulation_steps: 8
+  effective_batch_size: 16  # batch_size * gradient_accumulation_steps
+  learning_rate: 2.0e-5
+  warmup_steps: 100
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+
+  # Learning rate schedule
+  scheduler_type: "cosine"
+  min_lr_ratio: 0.1
+
+  # Mixed precision
+  fp16: false
+  bf16: true
+
+  # Gradient checkpointing
+  gradient_checkpointing: true
+
+  # Logging
+  logging_steps: 10
+  eval_steps: 500
+  save_steps: 1000
+  save_total_limit: 3
+
+  # LoRA Configuration (for efficient fine-tuning)
+  use_lora: true
+  lora_r: 64
+  lora_alpha: 128
+  lora_dropout: 0.05
+  lora_target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+# RL Training Configuration (for AgentGym tasks)
+rl_training:
+  algorithm: "ppo"
+  ppo_epochs: 4
+  num_rollouts: 100
+  rollout_batch_size: 4
+  clip_range: 0.2
+  vf_coef: 0.5
+  entropy_coef: 0.01
+  gae_lambda: 0.95
+  gamma: 0.99
+  max_steps_per_episode: 50
+  normalize_advantages: true
+  use_value_network: true
+  kl_penalty: 0.0
+
+# Data Configuration
+data:
+  # Affine tasks (Supervised Learning)
+  affine:
+    dataset: "satpalsr/rl-python"
+    buffer_size: 5
+    max_batch: 5
+    num_samples: 10000
+    train_split: 0.9
+    val_split: 0.1
+    environments:
+      - "affine:sat"
+      - "affine:abd"
+      - "affine:ded"
+
+  # AgentGym tasks (Reinforcement Learning)
+  agentgym:
+    num_episodes: 5000
+    max_episode_length: 50
+    environments:
+      - "agentgym:webshop"
+      - "agentgym:alfworld"
+      - "agentgym:babyai"
+      - "agentgym:sciworld"
+      - "agentgym:textcraft"
+
+# Evaluation Configuration
+evaluation:
+  eval_batch_size: 1
+  num_eval_samples: 200
+  environments:
+    - "affine:sat"
+    - "affine:abd"
+    - "affine:ded"
+    - "agentgym:webshop"
+    - "agentgym:alfworld"
+    - "agentgym:babyai"
+    - "agentgym:sciworld"
+    - "agentgym:textcraft"
+
+  # Minimum required performance per environment
+  min_score_threshold: 0.3
+  target_score_threshold: 0.6
+
+# Sampling Strategy (aligned with validator)
+sampling:
+  min_samples_per_env: 200
+  confidence_level: 0.80
+  beta_prior_alpha: 0.5
+  beta_prior_beta: 0.5
+
+# HuggingFace Deployment
+huggingface:
+  repo_name: "affine-0004-improved"
+  private: false
+  commit_message: "Fine-tuned Affine-0004 model for improved performance"
+  create_model_card: true
+  push_checkpoints: false
+  push_final_only: true
+
+# Hardware Configuration
+hardware:
+  num_gpus: 1
+  gpu_memory_threshold: 40  # GB
+  cpu_threads: 8
+  mixed_precision: true
+
+# Experiment Tracking
+tracking:
+  use_wandb: true
+  wandb_project: "affine-model-training"
+  wandb_entity: null  # Set to your wandb username
+  experiment_name: "affine-0004-finetune"
+  log_gradients: false
+  log_model: false
+
+# Random Seeds
+seed: 42
