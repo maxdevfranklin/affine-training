@@ -2,7 +2,7 @@
 
 # Base Model Configuration
 model:
-  base_model_path: "../Affine-Forest"
+  base_model_path: "../Affine-0004"
   model_type: "qwen3"
   architecture: "Qwen3ForCausalLM"
   parameters: 4022468096

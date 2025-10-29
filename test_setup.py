@@ -88,7 +88,7 @@ if missing:
 
 # Check base model
 print("\n6. Base Model")
-base_model_path = Path("../Affine-Forest")
+base_model_path = Path("../Affine-0004")
 if base_model_path.exists():
     print(f"   Path: {base_model_path}")
 
@@ -96,12 +96,12 @@ if base_model_path.exists():
     all_present = all((base_model_path / f).exists() for f in required_files)
 
     if all_present:
-        print("   ✓ Affine-Forest model found")
+        print("   ✓ Affine-0004 model found")
     else:
         print("   ⚠ Some model files missing")
 else:
     print(f"   ✗ Base model not found at {base_model_path}")
-    print("   Please ensure Affine-Forest is in the parent directory")
+    print("   Please ensure Affine-0004 is in the parent directory")
 
 # Check directories
 print("\n7. Project Structure")

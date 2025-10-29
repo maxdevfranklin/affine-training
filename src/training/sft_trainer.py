@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 import wandb
 
 from .model_loader import load_model_and_tokenizer, save_model, count_parameters
-from ..data.dataset import TrainingDataset
+from data.dataset import TrainingDataset
 
 
 class SupervisedFineTuner:

@@ -11,7 +11,7 @@ from tqdm import tqdm
 import numpy as np
 
 from .model_loader import load_model_and_tokenizer, save_model, count_parameters
-from ..data.dataset import RLDataset
+from data.dataset import RLDataset
 
 
 @dataclass

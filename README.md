@@ -100,7 +100,7 @@ Edit `config.yaml` to customize training parameters:
 
 ```yaml
 model:
-  base_model_path: "../Affine-Forest"
+  base_model_path: "../Affine-0004"
 
 training:
   num_epochs: 3
@@ -264,7 +264,7 @@ Edit `config.yaml`:
 
 ```yaml
 huggingface:
-  repo_name: "Cometstar/affine-model"
+  repo_name: "your-username/affine-model"
   private: false
   create_model_card: true
 ```
@@ -279,7 +279,7 @@ Enable W&B tracking in `config.yaml`:
 tracking:
   use_wandb: true
   wandb_project: "affine-training"
-  wandb_entity: "Cometstar"
+  wandb_entity: "your-username"
 ```
 
 ### Logs

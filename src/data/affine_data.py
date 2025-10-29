@@ -94,9 +94,11 @@ If the formula is unsatisfiable, respond with "UNSAT"."""
             max_batch=self.max_batch
         )
 
-        async for i, item in enumerate(dataset):
+        i = 0
+        async for item in dataset:
             if i >= num_samples:
                 break
+            i += 1
 
             code = item.get("code", "")
             inputs = item.get("inputs", [])
@@ -150,9 +152,11 @@ Provide the input in the format:
             max_batch=self.max_batch
         )
 
-        async for i, item in enumerate(dataset):
+        i = 0
+        async for item in dataset:
             if i >= num_samples:
                 break
+            i += 1
 
             problem = item.get("problem", "")
             code = item.get("code", "")
@@ -169,11 +173,17 @@ Provide the input in the format:
 
             examples = "\n\n".join(test_cases) if test_cases else ""
 
+            # Build the example test cases section
+            example_section = ""
+            if examples:
+                newline = "\n"
+                example_section = f"Example test cases:{newline}{examples}"
+
             prompt = f"""Write a Python program that solves the following problem:
 
 {problem}
 
-{f'Example test cases:\n{examples}' if examples else ''}
+{example_section}
 
 Write a complete program that reads from standard input and writes to standard output."""
 
