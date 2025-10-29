@@ -43,6 +43,23 @@ def load_model_and_tokenizer(
         (model, tokenizer) tuple
     """
     print(f"Loading model from {model_path}")
+    
+    # Detect if this is a local path vs HuggingFace repo ID
+    is_local_path = False
+    resolved_path = model_path
+    
+    # Check if it's a local path (not URL, not HuggingFace ID format)
+    if not model_path.startswith("http") and not "/" in model_path.split(":")[0] if ":" in model_path else False:
+        # Check if it looks like a local path
+        if "/" in model_path or "\\" in model_path or model_path.startswith("."):
+            is_local_path = True
+            resolved_path = str(Path(model_path).expanduser().resolve())
+            # Verify the path exists
+            if not Path(resolved_path).exists():
+                raise FileNotFoundError(f"Model path does not exist: {resolved_path}")
+    
+    # Use resolved path
+    model_path = resolved_path
 
     # Convert torch_dtype string to actual dtype
     if torch_dtype == "bfloat16":
@@ -67,11 +84,16 @@ def load_model_and_tokenizer(
 
     # Load tokenizer
     print("Loading tokenizer...")
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_path,
-        trust_remote_code=True,
-        padding_side="left"  # Important for batch generation
-    )
+    tokenizer_kwargs = {
+        "trust_remote_code": True,
+        "padding_side": "left"  # Important for batch generation
+    }
+    
+    # For local paths, use local_files_only to avoid cache validation issues
+    if is_local_path:
+        tokenizer_kwargs["local_files_only"] = True
+    
+    tokenizer = AutoTokenizer.from_pretrained(model_path, **tokenizer_kwargs)
 
     # Ensure pad token is set
     if tokenizer.pad_token is None:
@@ -86,6 +108,10 @@ def load_model_and_tokenizer(
         "device_map": device_map,
         "trust_remote_code": True,
     }
+    
+    # For local paths, use local_files_only
+    if is_local_path:
+        model_kwargs["local_files_only"] = True
 
     if quantization_config is not None:
         model_kwargs["quantization_config"] = quantization_config

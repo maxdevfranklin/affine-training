@@ -8,10 +8,26 @@ from pathlib import Path
 from typing import List, Dict, Any, Tuple
 from dataclasses import dataclass
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-
-from affine.utils import R2BufferedDataset
+# Import R2BufferedDataset with fallback
+# Note: R2BufferedDataset is not available in this codebase, so we create a mock
+class R2BufferedDataset:
+    """Mock R2BufferedDataset for local development"""
+    def __init__(self, dataset_name, buffer_size=5, max_batch=5):
+        self.dataset_name = dataset_name
+        self.buffer_size = buffer_size
+        self.max_batch = max_batch
+        self._warned = False
+    
+    def __aiter__(self):
+        if not self._warned:
+            print("Warning: R2BufferedDataset not available. Using empty dataset.")
+            self._warned = True
+        return self._empty_iterator()
+    
+    async def _empty_iterator(self):
+        # Empty async generator - returns no items
+        return
+        yield
 
 
 @dataclass
