@@ -11,7 +11,7 @@ from dataclasses import dataclass
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from affine.r2 import R2BufferedDataset
+from affine.utils import R2BufferedDataset
 
 
 @dataclass
