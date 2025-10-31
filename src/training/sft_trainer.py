@@ -126,7 +126,7 @@ class SupervisedFineTuner:
             lr_scheduler_type=self.training_config.get("scheduler_type", "cosine"),
             report_to="wandb" if self.tracking_config.get("use_wandb", False) else "none",
             logging_dir=str(output_dir / "logs"),
-            evaluation_strategy="steps",
+            eval_strategy="steps",
             save_strategy="steps",
             load_best_model_at_end=True,
             metric_for_best_model="eval_loss",

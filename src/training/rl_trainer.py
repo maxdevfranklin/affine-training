@@ -47,7 +47,7 @@ class RolloutBuffer:
         self.advantages.clear()
         self.returns.clear()
 
-    def compute_advantages(self, gamma: float = 0.99, gae_lambda: float = 0.95):
+    def compute_advantages(self, gamma: float = 0.99, gae_lambda: float = 0.95, device=None):
         """Compute advantages using GAE"""
         advantages = []
         returns = []
@@ -57,8 +57,8 @@ class RolloutBuffer:
         for i in reversed(range(len(self.rewards))):
             delta = self.rewards[i] + gamma * next_value * (1 - self.dones[i]) - self.values[i].item()
             gae = delta + gamma * gae_lambda * (1 - self.dones[i]) * gae
-            advantages.insert(0, torch.tensor(gae))
-            returns.insert(0, torch.tensor(gae + self.values[i].item()))
+            advantages.insert(0, torch.tensor(gae, device=device))
+            returns.insert(0, torch.tensor(gae + self.values[i].item(), device=device))
             next_value = self.values[i].item()
 
         self.advantages = advantages
@@ -130,6 +130,13 @@ class RLTrainer:
         hidden_size = self.model.config.hidden_size
         self.value_net = ValueNetwork(hidden_size)
         self.value_net = self.value_net.to(self.model.device)
+        
+        # Ensure value network uses the same dtype as model
+        dtype = next(self.model.parameters()).dtype
+        self.value_net = self.value_net.to(dtype=dtype)
+        
+        # Store device for buffer
+        self.device = self.model.device
 
         # Print parameter counts
         param_info = count_parameters(self.model)
@@ -146,7 +153,7 @@ class RLTrainer:
         self.dataset = RLDataset(
             data_dir=data_dir,
             environments=environments,
-            tokenizer=self.tokenizer,
+            tokenizer=None,  # Don't tokenize in dataset, do it in trainer
             max_length=4096,
             format_type="react"
         )
@@ -235,7 +242,7 @@ class RLTrainer:
             self.rollout_buffer.dones.append(sample["done"])
 
         # Compute advantages
-        self.rollout_buffer.compute_advantages(self.gamma, self.gae_lambda)
+        self.rollout_buffer.compute_advantages(self.gamma, self.gae_lambda, device=self.device)
 
         return self.rollout_buffer
 
@@ -256,9 +263,9 @@ class RLTrainer:
             for idx in indices:
                 observation = buffer.observations[idx]
                 action = buffer.actions[idx]
-                old_log_prob = buffer.log_probs[idx]
-                advantage = buffer.advantages[idx]
-                return_val = buffer.returns[idx]
+                old_log_prob = buffer.log_probs[idx].detach()  # Detach to prevent gradient issues
+                advantage = buffer.advantages[idx].detach()
+                return_val = buffer.returns[idx].detach()
 
                 # Get new log prob and value
                 new_log_prob, value, _ = self.get_action_logprobs(observation, action)
@@ -271,7 +278,9 @@ class RLTrainer:
                 surr2 = torch.clamp(ratio, 1 - self.clip_range, 1 + self.clip_range) * advantage
                 policy_loss = -torch.min(surr1, surr2)
 
-                # Value loss
+                # Value loss - ensure same shape
+                if return_val.dim() == 0:
+                    return_val = return_val.unsqueeze(0)
                 value_loss = F.mse_loss(value, return_val)
 
                 # Total loss
@@ -288,7 +297,7 @@ class RLTrainer:
                 metrics["policy_loss"] += policy_loss.item()
                 metrics["value_loss"] += value_loss.item()
                 metrics["total_loss"] += loss.item()
-                metrics["kl_div"] += (old_log_prob - new_log_prob).abs().item()
+                metrics["kl_div"] += (old_log_prob - new_log_prob.detach()).abs().item()
 
         # Average metrics
         num_updates = self.ppo_epochs * len(buffer.observations)

@@ -123,6 +123,10 @@ def load_model_and_tokenizer(
 
     # Configure for training
     model.config.use_cache = False  # Disable KV cache for training
+    
+    # Enable gradient checkpointing if needed
+    if hasattr(model, 'gradient_checkpointing_enable'):
+        model.gradient_checkpointing_enable()
 
     # Apply LoRA if requested
     if use_lora:

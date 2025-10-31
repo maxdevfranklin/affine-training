@@ -2,11 +2,11 @@
 
 # Base Model Configuration
 model:
-  base_model_path: "../Affine-0004"
+  base_model_path: "../Affine-QQ"
   model_type: "qwen3"
   architecture: "Qwen3ForCausalLM"
   parameters: 4022468096
-  context_length: 262144
+  context_length: 8192
   use_flash_attention: true
   torch_dtype: "bfloat16"
   device_map: "auto"
@@ -58,12 +58,13 @@ training:
 # RL Training Configuration (for AgentGym tasks)
 rl_training:
   algorithm: "ppo"
-  ppo_epochs: 4
-  num_rollouts: 100
-  rollout_batch_size: 4
+  ppo_epochs: 2
+  num_rollouts: 3000
+  rollout_batch_size: 16
+  learning_rate: 5.0e-6
   clip_range: 0.2
   vf_coef: 0.5
-  entropy_coef: 0.01
+  entropy_coef: 0.02
   gae_lambda: 0.95
   gamma: 0.99
   max_steps_per_episode: 50
@@ -124,10 +125,10 @@ sampling:
 
 # HuggingFace Deployment
 huggingface:
-  repo_name: "affine-0004-improved"
+  repo_name: "affine-drone1"
   private: false
-  commit_message: "Fine-tuned Affine-0004 model for improved performance"
-  create_model_card: true
+  commit_message: "Supervised fine-tuned model for improved performance"
+  create_model_card: false
   push_checkpoints: false
   push_final_only: true
 

@@ -235,13 +235,32 @@ Apache 2.0
         try:
             # Create repository if it doesn't exist
             print(f"\nCreating repository: {repo_name}")
+            
+            # Extract username if provided
+            if "/" in repo_name:
+                parts = repo_name.split("/")
+                if len(parts) == 2:
+                    repo_id = repo_name
+                else:
+                    repo_id = repo_name
+            else:
+                # Need to get current username
+                from huggingface_hub import whoami
+                user_info = whoami(token=self.token)
+                username = user_info['name']
+                repo_id = f"{username}/{repo_name}"
+                print(f"Using full repo_id: {repo_id}")
+            
             repo_url = create_repo(
-                repo_id=repo_name,
+                repo_id=repo_id,
                 private=private,
                 token=self.token,
                 exist_ok=True
             )
             print(f"Repository created/verified: {repo_url}")
+            
+            # Use the correct repo_id for upload
+            repo_name = repo_id
 
             # Upload folder
             print(f"\nUploading files from {model_path}...")

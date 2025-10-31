@@ -17,8 +17,8 @@ except ImportError:
     test_envs = None
     print("Warning: test-code module not found. Using mock evaluation.")
 
-from ..training.model_loader import load_model_and_tokenizer
-from .metrics import compute_metrics, aggregate_metrics, EvaluationMetrics
+from training.model_loader import load_model_and_tokenizer
+from evaluation.metrics import compute_metrics, aggregate_metrics, EvaluationMetrics
 
 
 class ModelEvaluator:
