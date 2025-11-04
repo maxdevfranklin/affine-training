@@ -26,14 +26,15 @@ class R2BufferedDataset:
     
     async def _empty_iterator(self):
         # Empty async generator - returns no items
-        return
-        yield
+        # Fix: removed 'return' before 'yield' which caused early exit
+        if False:
+            yield  # This makes it a generator but never yields anything
 
 
 @dataclass
 class AffineSample:
     """Represents a training sample for Affine tasks"""
-    prompt: str
+    prompt: str 
     response: str
     environment: str
     difficulty: float
@@ -99,40 +100,48 @@ If the formula is unsatisfiable, respond with "UNSAT"."""
 
         return samples
 
-    async def collect_abd_samples(self, num_samples: int) -> List[AffineSample]:
-        """Collect abduction (reverse engineering) samples"""
+        async def collect_abd_samples(self, num_samples: int) -> List[AffineSample]:
+        """Collect abduction (reverse engineering) samples - synthetic generation"""
         samples = []
 
-        # Initialize R2 dataset
-        dataset = R2BufferedDataset(
-            self.dataset_name,
-            buffer_size=self.buffer_size,
-            max_batch=self.max_batch
-        )
+        # Generate synthetic code patterns for abduction
+        patterns = [
+            ("x = int(input())\nprint(x * 2)", lambda x: x * 2, "integer"),
+            ("x = int(input())\ny = int(input())\nprint(x + y)", lambda x, y: x + y, "two integers"),
+            ("x = int(input())\nprint(x ** 2)", lambda x: x ** 2, "integer"),
+            ("s = input()\nprint(len(s))", lambda s: len(s), "string"),
+            ("x = int(input())\nprint(abs(x))", lambda x: abs(x), "integer"),
+            ("x = int(input())\nprint(x % 10)", lambda x: x % 10, "integer"),
+            ("x = int(input())\nprint(str(x)[::-1])", lambda x: str(x)[::-1], "integer"),
+            ("x = float(input())\nprint(round(x, 2))", lambda x: round(x, 2), "float"),
+        ]
 
-        i = 0
-        async for item in dataset:
-            if i >= num_samples:
-                break
-            i += 1
-
-            code = item.get("code", "")
-            inputs = item.get("inputs", [])
-            outputs = item.get("outputs", [])
-
-            if not code or not inputs or not outputs:
+        for i in range(num_samples):
+            code_template, func, input_type = random.choice(patterns)
+            
+            # Generate test input based on pattern
+            if input_type == "integer":
+                test_input = str(random.randint(1, 1000))
+                expected_output = str(func(int(test_input)))
+            elif input_type == "two integers":
+                x = random.randint(1, 100)
+                y = random.randint(1, 100)
+                test_input = f"{x}\n{y}"
+                expected_output = str(func(x, y))
+            elif input_type == "string":
+                test_input = random.choice(["hello", "world", "test", "python", "code"])
+                expected_output = str(func(test_input))
+            elif input_type == "float":
+                test_input = str(random.uniform(1.0, 100.0))
+                expected_output = str(func(float(test_input)))
+            else:
                 continue
-
-            # Select random input-output pair
-            idx = random.randint(0, min(len(inputs), len(outputs)) - 1)
-            test_input = inputs[idx]
-            expected_output = outputs[idx]
 
             prompt = f"""Given the following Python program and its expected output, determine what input would produce this output.
 
 Program:
 ```python
-{code}
+{code_template}
 ```
 
 Expected Output:
@@ -151,55 +160,68 @@ Provide the input in the format:
                 prompt=prompt,
                 response=response,
                 environment="affine:abd",
-                difficulty=len(code.split('\n')) / 50.0,
-                metadata={"code_length": len(code), "num_lines": len(code.split('\n'))}
+                difficulty=len(code_template.split('\n')) / 50.0,
+                metadata={"code_length": len(code_template), "num_lines": len(code_template.split('\n'))}
             ))
 
         return samples
 
-    async def collect_ded_samples(self, num_samples: int) -> List[AffineSample]:
-        """Collect deduction (code generation) samples"""
+        async def collect_ded_samples(self, num_samples: int) -> List[AffineSample]:
+        """Collect deduction (code generation) samples - synthetic generation"""
         samples = []
 
-        # Initialize R2 dataset
-        dataset = R2BufferedDataset(
-            self.dataset_name,
-            buffer_size=self.buffer_size,
-            max_batch=self.max_batch
-        )
+        # Generate synthetic problem patterns
+        problems = [
+            ("Read two integers and print their sum.", 
+             "a = int(input())\nb = int(input())\nprint(a + b)",
+             [("5\n10", "15"), ("20\n30", "50"), ("100\n200", "300")]),
+            ("Read an integer and print its square.",
+             "x = int(input())\nprint(x * x)",
+             [("5", "25"), ("10", "100"), ("7", "49")]),
+            ("Read a string and print its length.",
+             "s = input()\nprint(len(s))",
+             [("hello", "5"), ("world", "5"), ("python", "6")]),
+            ("Read an integer and print whether it's even or odd.",
+             "x = int(input())\nprint('even' if x % 2 == 0 else 'odd')",
+             [("4", "even"), ("7", "odd"), ("10", "even")]),
+            ("Read two integers and print the maximum.",
+             "a = int(input())\nb = int(input())\nprint(max(a, b))",
+             [("5\n10", "10"), ("20\n15", "20"), ("3\n3", "3")]),
+            ("Read an integer n and print the sum from 1 to n.",
+             "n = int(input())\nprint(sum(range(1, n + 1)))",
+             [("5", "15"), ("10", "55"), ("3", "6")]),
+            ("Read a string and print it reversed.",
+             "s = input()\nprint(s[::-1])",
+             [("hello", "olleh"), ("world", "dlrow"), ("abc", "cba")]),
+            ("Read a float and print it rounded to 2 decimal places.",
+             "x = float(input())\nprint(f'{x:.2f}')",
+             [("3.14159", "3.14"), ("2.71828", "2.72"), ("1.23456", "1.23")]),
+        ]
 
-        i = 0
-        async for item in dataset:
-            if i >= num_samples:
-                break
-            i += 1
+        for i in range(num_samples):
+            problem, code, test_cases = random.choice(problems)
+            
+            # Select 1-3 test cases to include
+            num_test_cases = random.randint(1, min(3, len(test_cases)))
+            selected_cases = random.sample(test_cases, num_test_cases)
+            
+            # Format test cases
+            test_case_lines = []
+            for inp, out in selected_cases:
+                # Handle multi-line inputs
+                inp_formatted = inp.replace('\n', '\\n')
+                test_case_lines.append(f"Input: {inp_formatted}\nOutput: {out}")
 
-            problem = item.get("problem", "")
-            code = item.get("code", "")
-            inputs = item.get("inputs", [])
-            outputs = item.get("outputs", [])
-
-            if not problem or not code:
-                continue
-
-            # Create example test cases
-            test_cases = []
-            for inp, out in zip(inputs[:3], outputs[:3]):
-                test_cases.append(f"Input: {inp}\nOutput: {out}")
-
-            examples = "\n\n".join(test_cases) if test_cases else ""
+            examples = "\n\n".join(test_case_lines) if test_case_lines else ""
 
             # Build the example test cases section
             example_section = ""
             if examples:
-                newline = "\n"
-                example_section = f"Example test cases:{newline}{examples}"
+                example_section = f"\n\nExample test cases:\n{examples}"
 
             prompt = f"""Write a Python program that solves the following problem:
 
-{problem}
-
-{example_section}
+{problem}{example_section}
 
 Write a complete program that reads from standard input and writes to standard output."""
 
@@ -212,7 +234,7 @@ Write a complete program that reads from standard input and writes to standard o
                 response=response,
                 environment="affine:ded",
                 difficulty=len(code.split('\n')) / 50.0,
-                metadata={"code_length": len(code), "num_test_cases": len(test_cases)}
+                metadata={"code_length": len(code), "num_test_cases": len(selected_cases)}
             ))
 
         return samples
