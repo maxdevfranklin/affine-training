@@ -48,15 +48,24 @@ def load_model_and_tokenizer(
     is_local_path = False
     resolved_path = model_path
     
-    # Check if it's a local path (not URL, not HuggingFace ID format)
-    if not model_path.startswith("http") and not "/" in model_path.split(":")[0] if ":" in model_path else False:
+    # Check if it's a local path (has / or \ or starts with .) and not a URL
+    if not model_path.startswith("http"):
         # Check if it looks like a local path
-        if "/" in model_path or "\\" in model_path or model_path.startswith("."):
+        if "/" in model_path or "\\" in model_path or model_path.startswith(".") or Path(model_path).exists():
             is_local_path = True
             resolved_path = str(Path(model_path).expanduser().resolve())
             # Verify the path exists
             if not Path(resolved_path).exists():
-                raise FileNotFoundError(f"Model path does not exist: {resolved_path}")
+                # Provide helpful error message with suggestions
+                error_msg = f"Model path does not exist: {resolved_path}\n"
+                error_msg += f"Original path: {model_path}\n"
+                error_msg += f"Resolved path: {resolved_path}\n\n"
+                error_msg += "Please check:\n"
+                error_msg += f"1. The model directory exists at the expected location\n"
+                error_msg += f"2. Update config.yaml 'base_model_path' with the correct path\n"
+                error_msg += f"3. Common Colab locations: /content/, /content/drive/MyDrive/, or relative paths like ./models/\n"
+                error_msg += f"4. If using a HuggingFace model, use the repo ID format: 'username/model-name'"
+                raise FileNotFoundError(error_msg)
     
     # Use resolved path
     model_path = resolved_path

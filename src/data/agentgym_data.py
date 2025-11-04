@@ -228,31 +228,119 @@ class AgentGymDataCollector:
         return episodes
 
     async def collect_textcraft_episodes(self, num_episodes: int) -> List[RLEpisode]:
-        """Collect TextCraft environment episodes"""
+        """Collect TextCraft environment episodes - expanded with diverse recipes"""
         episodes = []
 
+        # Expanded recipe library with diverse crafting patterns
         recipes = [
+            # Basic tools
             ("craft a pickaxe", ["get[wood]", "craft[planks]", "craft[sticks]", "get[cobblestone]", "craft[pickaxe]"]),
             ("craft a sword", ["get[wood]", "craft[planks]", "craft[sticks]", "get[iron ore]", "craft[sword]"]),
+            ("craft an axe", ["get[wood]", "craft[planks]", "craft[sticks]", "get[cobblestone]", "craft[axe]"]),
+            ("craft a shovel", ["get[wood]", "craft[planks]", "craft[sticks]", "get[iron ore]", "craft[shovel]"]),
+            ("craft a hoe", ["get[wood]", "craft[planks]", "craft[sticks]", "get[iron ore]", "craft[hoe]"]),
+            
+            # Weapons
+            ("craft a bow", ["get[wood]", "craft[planks]", "craft[sticks]", "get[string]", "craft[bow]"]),
+            ("craft arrows", ["get[sticks]", "get[flint]", "get[feather]", "craft[arrows]", "craft[arrows]", "craft[arrows]"]),
+            ("craft a shield", ["get[wood]", "craft[planks]", "craft[planks]", "craft[planks]", "get[iron ingot]", "craft[shield]"]),
+            ("craft a dagger", ["get[iron ingot]", "craft[stick]", "craft[dagger]"]),
+            ("craft a spear", ["get[iron ingot]", "get[stick]", "craft[spear]"]),
+            
+            # Building materials
+            ("craft wooden planks", ["get[wood]", "craft[planks]", "craft[planks]", "craft[planks]", "craft[planks]"]),
+            ("craft sticks", ["get[planks]", "craft[sticks]", "craft[sticks]"]),
+            ("craft stone bricks", ["get[cobblestone]", "craft[stone bricks]", "craft[stone bricks]"]),
+            ("craft glass", ["get[sand]", "smelt[glass]"]),
+            ("craft torches", ["get[stick]", "get[coal]", "craft[torch]", "craft[torch]", "craft[torch]", "craft[torch]"]),
+            
+            # Furnace and smelting
+            ("craft a furnace", ["get[cobblestone]", "get[cobblestone]", "get[cobblestone]", "get[cobblestone]", "get[cobblestone]", "get[cobblestone]", "get[cobblestone]", "get[cobblestone]", "craft[furnace]"]),
+            ("smelt iron ingot", ["get[iron ore]", "get[coal]", "smelt[iron ingot]"]),
+            ("smelt gold ingot", ["get[gold ore]", "get[coal]", "smelt[gold ingot]"]),
+            ("smelt glass", ["get[sand]", "smelt[glass]"]),
+            ("cook food", ["get[raw meat]", "cook[steak]"]),
+            
+            # Armor
+            ("craft leather helmet", ["get[leather]", "get[leather]", "get[leather]", "craft[leather helmet]"]),
+            ("craft iron chestplate", ["get[iron ingot]", "get[iron ingot]", "get[iron ingot]", "get[iron ingot]", "get[iron ingot]", "get[iron ingot]", "get[iron ingot]", "craft[iron chestplate]"]),
+            ("craft iron boots", ["get[iron ingot]", "get[iron ingot]", "get[iron ingot]", "get[iron ingot]", "craft[iron boots]"]),
+            
+            # Food and consumables
+            ("craft bread", ["get[wheat]", "get[wheat]", "get[wheat]", "craft[bread]"]),
+            ("craft cake", ["get[milk]", "get[egg]", "get[wheat]", "get[sugar]", "craft[cake]"]),
+            ("craft cooked chicken", ["get[raw chicken]", "cook[cooked chicken]"]),
+            
+            # Redstone and advanced
+            ("craft redstone torch", ["get[stick]", "get[redstone]", "craft[redstone torch]"]),
+            ("craft lever", ["get[stick]", "get[cobblestone]", "craft[lever]"]),
+            ("craft button", ["get[stone]", "craft[button]"]),
+            
+            # Decorative items
+            ("craft painting", ["get[wood]", "craft[planks]", "get[wool]", "craft[painting]"]),
+            ("craft bookshelf", ["get[planks]", "get[planks]", "get[planks]", "get[book]", "get[book]", "get[book]", "craft[bookshelf]"]),
+            
+            # Complex multi-step recipes
+            ("craft iron pickaxe", ["get[iron ore]", "get[coal]", "smelt[iron ingot]", "get[iron ingot]", "get[iron ingot]", "get[stick]", "craft[iron pickaxe]"]),
+            ("craft diamond sword", ["get[diamond]", "get[diamond]", "get[stick]", "craft[diamond sword]"]),
+            ("craft enchanted book", ["get[book]", "get[lapis lazuli]", "get[experience]", "enchant[enchanted book]"]),
+            
+            # Utility items
+            ("craft a chest", ["get[planks]", "get[planks]", "get[planks]", "get[planks]", "get[planks]", "get[planks]", "get[planks]", "get[planks]", "craft[chest]"]),
+            ("craft crafting table", ["get[planks]", "get[planks]", "get[planks]", "get[planks]", "craft[crafting table]"]),
+            ("craft ladder", ["get[stick]", "get[stick]", "get[stick]", "get[stick]", "get[stick]", "get[stick]", "get[stick]", "craft[ladder]"]),
         ]
 
         for i in range(num_episodes):
             recipe_desc, recipe_actions = random.choice(recipes)
-            observations = [f"[TextCraft] Goal: {recipe_desc}\nInventory: []"]
+            
+            # Add some variation: sometimes inventory starts with some items
+            starting_inventory = []
+            if random.random() < 0.3:  # 30% chance to start with some items
+                available_items = ["wood", "planks", "stick", "cobblestone", "iron ore", "coal"]
+                starting_items = random.sample(available_items, random.randint(1, 2))
+                starting_inventory = starting_items
+            
+            # Add randomness: sometimes take extra steps or explore
+            observations = [f"[TextCraft] Goal: {recipe_desc}\nInventory: {starting_inventory if starting_inventory else '[]'}"]
             actions = []
             rewards = []
             dones = []
-
+            
+            inventory_items = set(starting_inventory)
+            
             for action in recipe_actions:
+                # Sometimes add exploration actions (10% chance)
+                if random.random() < 0.1 and len(actions) > 0:
+                    explore_actions = ["explore[north]", "explore[south]", "explore[east]", "explore[west]"]
+                    explore_action = random.choice(explore_actions)
+                    actions.append(explore_action)
+                    observations.append(f"Action: {explore_action}\nNo items found.")
+                    rewards.append(0.0)  # No reward for exploration
+                    dones.append(False)
+                
+                # Add the actual recipe action
                 actions.append(action)
-                observations.append(f"Action: {action}\nInventory updated")
+                
+                # Parse action to update inventory
+                if action.startswith("get["):
+                    item = action[4:-1]
+                    inventory_items.add(item)
+                    observations.append(f"Action: {action}\nInventory: {list(inventory_items)}")
+                elif action.startswith("craft[") or action.startswith("smelt[") or action.startswith("cook["):
+                    item = action.split("[")[1][:-1]
+                    inventory_items.add(item)
+                    observations.append(f"Action: {action}\nInventory: {list(inventory_items)}")
+                else:
+                    observations.append(f"Action: {action}\nInventory: {list(inventory_items)}")
+                
                 rewards.append(0.15)
                 dones.append(False)
 
             # Final reward
             rewards[-1] = 1.0
             dones[-1] = True
-            observations.append(f"Successfully crafted!")
+            observations.append(f"Successfully crafted {recipe_desc}!")
 
             episodes.append(RLEpisode(
                 environment="agentgym:textcraft",
@@ -262,7 +350,7 @@ class AgentGymDataCollector:
                 dones=dones,
                 total_reward=sum(rewards),
                 episode_length=len(actions),
-                metadata={"recipe": recipe_desc}
+                metadata={"recipe": recipe_desc, "starting_inventory": starting_inventory}
             ))
 
         return episodes

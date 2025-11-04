@@ -100,7 +100,7 @@ If the formula is unsatisfiable, respond with "UNSAT"."""
 
         return samples
 
-        async def collect_abd_samples(self, num_samples: int) -> List[AffineSample]:
+    async def collect_abd_samples(self, num_samples: int) -> List[AffineSample]:
         """Collect abduction (reverse engineering) samples - synthetic generation"""
         samples = []
 
@@ -166,7 +166,7 @@ Provide the input in the format:
 
         return samples
 
-        async def collect_ded_samples(self, num_samples: int) -> List[AffineSample]:
+    async def collect_ded_samples(self, num_samples: int) -> List[AffineSample]:
         """Collect deduction (code generation) samples - synthetic generation"""
         samples = []
 

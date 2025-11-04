@@ -2,11 +2,11 @@
 
 # Base Model Configuration
 model:
-  base_model_path: "../Affine-QQ"
+  base_model_path: "../Affine_robertoCalories"
   model_type: "qwen3"
   architecture: "Qwen3ForCausalLM"
   parameters: 4022468096
-  context_length: 8192
+  context_length: 4096  # Reduced from 8192 to save memory
   use_flash_attention: true
   torch_dtype: "bfloat16"
   device_map: "auto"
@@ -16,9 +16,9 @@ training:
   output_dir: "./checkpoints"
   save_dir: "./models"
   num_epochs: 3
-  batch_size: 2
-  gradient_accumulation_steps: 8
-  effective_batch_size: 16  # batch_size * gradient_accumulation_steps
+  batch_size: 1  # Reduced from 2 to save memory
+  gradient_accumulation_steps: 16  # Increased from 8 to maintain effective batch size
+  effective_batch_size: 16  # batch_size * gradient_accumulation_steps (1 * 16 = 16)
   learning_rate: 2.0e-5
   warmup_steps: 100
   weight_decay: 0.01
@@ -79,7 +79,7 @@ data:
     dataset: "satpalsr/rl-python"
     buffer_size: 5
     max_batch: 5
-    num_samples: 10000
+    num_samples: 3000  # 1000 per environment (SAT, ABD, DED)
     train_split: 0.9
     val_split: 0.1
     environments:
@@ -125,7 +125,7 @@ sampling:
 
 # HuggingFace Deployment
 huggingface:
-  repo_name: "affine-drone1"
+  repo_name: "affine-colaie"
   private: false
   commit_message: "Supervised fine-tuned model for improved performance"
   create_model_card: false
