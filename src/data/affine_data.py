@@ -34,7 +34,7 @@ class R2BufferedDataset:
 @dataclass
 class AffineSample:
     """Represents a training sample for Affine tasks"""
-    prompt: str 
+    prompt: str
     response: str
     environment: str
     difficulty: float

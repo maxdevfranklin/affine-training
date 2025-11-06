@@ -3,6 +3,7 @@
 
 import sys
 import json
+import argparse
 from pathlib import Path
 
 # Add src to path
@@ -15,6 +16,16 @@ from utils.logger import setup_logger
 
 def main():
     """Main deployment workflow"""
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Deploy model to HuggingFace Hub")
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="Path to the model directory to deploy (default: auto-detect from config)"
+    )
+    args = parser.parse_args()
+
     # Setup logger
     logger = setup_logger("deployment", Path("logs"))
     logger.info("Starting model deployment...")
@@ -23,21 +34,30 @@ def main():
     config = load_config("config.yaml")
 
     # Determine model path
-    model_paths = [
-        Path(config["training"]["save_dir"]) / "rl_final",
-        Path(config["training"]["save_dir"]) / "sft_final",
-    ]
+    if args.model:
+        # Use provided model path
+        model_path = Path(args.model)
+        if not model_path.exists():
+            logger.error(f"Model path does not exist: {model_path}")
+            return
+        logger.info(f"Using specified model from: {model_path}")
+    else:
+        # Auto-detect model path from config
+        model_paths = [
+            Path(config["training"]["save_dir"]) / "rl_final",
+            Path(config["training"]["save_dir"]) / "sft_final",
+        ]
 
-    model_path = None
-    for path in model_paths:
-        if path.exists():
-            model_path = path
-            logger.info(f"Using model from: {model_path}")
-            break
+        model_path = None
+        for path in model_paths:
+            if path.exists():
+                model_path = path
+                logger.info(f"Using model from: {model_path}")
+                break
 
-    if model_path is None:
-        logger.error("No trained model found!")
-        return
+        if model_path is None:
+            logger.error("No trained model found!")
+            return
 
     # Load evaluation metrics if available
     metrics = None

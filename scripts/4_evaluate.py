@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from evaluation.evaluator import ModelEvaluator
+from evaluation.validator_summary import build_validator_summary
 from utils.config import load_config
 from utils.logger import setup_logger
 
@@ -84,9 +85,34 @@ async def main():
         logger.info("Running evaluation...")
         results = await evaluator.evaluate_all()
 
+        summary = None
+        try:
+            summary = build_validator_summary(
+                per_environment=results.get("per_environment", {}),
+                model_name=Path(model_path).name,
+            )
+        except Exception as summary_err:
+            logger.warning(f"Failed to render validator summary: {summary_err}")
+            summary = None
+
+        if summary:
+            results["validator_summary"] = {
+                "header": summary.header,
+                "row": summary.row,
+            }
+
         # Save results
         output_file = Path(args.output)
         evaluator.save_results(results, output_file)
+
+        if summary:
+            summary_text = summary.to_text()
+            logger.info("\n" + "=" * 80)
+            logger.info("VALIDATOR-STYLE SUMMARY ROW")
+            logger.info("=" * 80)
+            for line in summary_text.splitlines():
+                logger.info(line)
+            logger.info("=" * 80)
 
         logger.info("\n" + "=" * 80)
         logger.info("EVALUATION COMPLETED")
